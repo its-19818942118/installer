@@ -8,7 +8,7 @@ installer: installer.cpp
 	@echo ":: 10%..."
 	@ccache g++ $(CXXFlags) installer.cpp -o installer
 	@echo ":: 15%..."
-	@ccache g++ $(CXXFlags) installer.cpp -o installerd -o ad.out -DDEBUG
+	@ccache g++ $(CXXFlags) installer.cpp -g -o installerd -o ad.out -DDEBUG
 	@echo ":: 45%..."
 	@ccache g++ $(CXXFlags) -static installer.cpp -o a.out -o s_installer
 	@echo ":: 100%..."

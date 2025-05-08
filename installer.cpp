@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -40,8 +41,8 @@ namespace
         yay = "sudo pacman -S --needed git base-devel && mkdir -p /tmp/yay && cd /tmp/yay && git clone https://aur.archlinux.org/yay.git && cd yay && makepkg -si && rm -rf /tmp/yay",
         agsV1 = "mkdir -p /tmp/agsv1 && cd /tmp/agsv1 && git clone https://github.com/Lunaris-Project/agsv1 && ",
         hyprLunaRepo = "https://github.com/Lunaris-Project/HyprLuna.git",
-        hyprlunaDir = std::string(getenv("$HOME")) + "/.config/HyprLuna",
-        backDir = std::string(getenv("$HOME")) + "/hyprLuna-user.bak",
+        // hyprlunaDir = std::string(getenv("$HOME")) + "/.config/HyprLuna",
+        // backDir = std::string(getenv("$HOME")) + "/hyprLuna-user.bak",
         cmdPacPkg = cmdPac + pkgPac,
         cmdAurPKg = cmdAur + pkgAur
     ;
@@ -49,9 +50,32 @@ namespace
     
 } /* namespace pkgString */
 
+void executeWithRetry(const std::string& command, int maxRetries) {
+    int attempts = 0;
+    int result;
+    while (attempts < maxRetries) {
+        result = system(command.c_str());
+        if (result == 0) {
+            return; // Command succeeded
+        }
+        attempts++;
+        std::cerr << "Error: Command failed with return code: " << result << ". Attempts left: " << (maxRetries - attempts) << std::endl;
+        if (attempts < maxRetries) {
+            std::cout << "Would you like to retry? (Y/N): ";
+            std::string retryInput;
+            std::getline(std::cin, retryInput);
+            if (retryInput != "y" && retryInput != "Y") {
+                std::cout << "Exiting after failed attempts." << std::endl;
+                return; // Exit if user chooses not to retry
+            }
+        }
+    }
+    std::cerr << "Error: Maximum attempts reached. Command failed." << std::endl;
+}
+
 std::string
     packagesString
-    ( std::string packagetype , bool nc )
+    ( std::string packagetype , bool nc , std::optional<std::string> helperType = std::nullopt )
 {
     
     
@@ -70,13 +94,13 @@ std::string
     else if
         ( packagetype == "aur" && nc == false )
     {
-        return pkgString::cmdAurPKg;
+        return /* *helperType + */ pkgString::cmdAurPKg;
     }
     
     else if
         ( packagetype == "aur" && nc == true )
     {
-        return pkgString::cmdAurPKg + "--no-confirm";
+        return /* *helperType + */ pkgString::cmdAurPKg + "--no-confirm";
     }
     
     return "null";
@@ -90,129 +114,101 @@ void
     
 }
 
-void
-    installHyprLuna
-    ( bool nc)
-{
-    
-    std::cout
-        <<  ":: INFO: Install the following Dependencies Required for HyprLuna? [Yy/Nn]\n"
-        <<  "  >> "
-    ;
-    std::string confirmInput;
-    int falseCount = 0;
-    
-    while (falseCount <= 3)  // Change to < 3
-    {
-        std::getline (std::cin, confirmInput);  // Move input inside the loop
+#include <iostream>
+#include <limits> // For std::numeric_limits
 
-        if
-            ( confirmInput == "y" || confirmInput == "Y")
-        {
-            
-            std::cout
-                <<  ":: Please choose an Aur Helper: [0/1/2]\n"
-                <<  ":: 1. Yay\n"
-                <<  ":: 2. Paru\n"
-                <<  ":: 0. Default\n"
-                <<  "  >> "
-            ;
-            
-            int aurHelperInput;  // Use a different name
-            std::cin >> aurHelperInput;
-            
-            if (aurHelperInput == 0)
-            {
-                int result;
+#include <iostream>
+#include <limits> // For std::numeric_limits
+
+#include <iostream>
+#include <limits> // For std::numeric_limits
+
+void installHyprLuna(bool nc) {
+    std::cout
+        << ":: INFO: Install the following Dependencies Required for HyprLuna? [Yy/Nn]\n" << "  >> ";
+    std::string confirmInput , helperType;
+    int falseCount = 0;
+
+    while (falseCount < 3) {
+        std::getline(std::cin, confirmInput);
+
+        if (confirmInput == "y" || confirmInput == "Y") {
+            int aurHelperInput = -1; // Initialize to an invalid value
+            falseCount = 0; // Reset falseCount for AUR helper selection
+
+            while (falseCount < 3) {
+                std::cout << ":: Please choose an Aur Helper: [0/1/2]\n" 
+                          << ":: 0. Default (Yay)\n"
+                          << ":: 1. Yay\n" 
+                          << ":: 2. Paru\n" 
+                          << "  >> ";
+                
+                // Attempt to read aurHelperInput
+                std::cin >> aurHelperInput;
+
+                // Check if the input was valid
+                if (std::cin.fail()) {
+                    std::cin.clear(); // Clear the fail state
+                    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Ignore the rest of the line
+                    std::cerr << ":: WARN: Invalid input! Please select 0, 1, or 2." << std::endl;
+                    falseCount++; // Increment falseCount for invalid input
+                    if (falseCount >= 3) {
+                        std::cout << ":: Error: 3 failed attempts for Aur Helper input\n" << ":: Exiting...\n";
+                        return; // Exit the function after 3 failed attempts
+                    }
+                    else
+                    continue; // Continue to the next iteration of the loop
+                }
+
+                // Clear the newline character from the input buffer
+                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+
+                // Check for valid input
+                if (aurHelperInput < 0 || aurHelperInput > 2 ) {
+                    std::cerr << ":: WARN: Invalid input! Please select 0, 1, or 2." << std::endl;
+                    falseCount++; // Increment falseCount for invalid input
+                } else {
+                    break; // Valid input, exit the loop
+                }
+            }
+
+            // Execute the selected AUR helper installation with retry
+            if (aurHelperInput == 0 || aurHelperInput == 1) {
+                std::cout << "Selected AUR Helper: Yay" << std::endl
+                // <<  ":: INFO: Beggining installation proccess for AUR Helper: Yay"
                 ;
-                result = system(pkgString::yay.c_str());
-                if (result != 0)
-                    std::cerr
-                    <<  "Error: Aur Helper Installer exited with the following return code: "
-                    <<  result
-                    <<  '\n'
+                
+                helperType = "yay ";
+                executeWithRetry(packagesString("aur", nc , helperType ), 3);
+                break;
+                
+            } else if (aurHelperInput == 2) {
+                // Call your function to execute with Paru
+                std::cout << "Selected AUR Helper: Paru" << std::endl
+                //   << ":: INFO: Beggining installation proccess for AUR Helper: Paru"
                 ;
+                helperType = "paru ";
+                executeWithRetry(packagesString("aur", nc , helperType ), 3);
+                break;
             }
             
-            if (aurHelperInput == 1)
-            {
-                int result;
-                result = system(pkgString::yay.c_str());
-                if (result != 0)
-                    std::cerr
-                    <<  "Error: Aur Helper Installer exited with the following return code: "
-                    <<  result
-                    <<  '\n'
-                ;
-            }
             
-            if (aurHelperInput == 2)
-            {
-                int result;
-                result = system(pkgString::paru.c_str());
-                if (result != 0)
-                    std::cerr
-                    <<  "Error: Aur Helper Installer exited with the following return code: "
-                    <<  result
-                    <<  '\n'
-                ;
-            }
-            
-            int result;
-            result = system
-                (packagesString("pacman" , nc).c_str())
-            ;
-            
-            if (result != 0)
-                std::cerr
-                <<  "Error: Pacman exited with the following return code: "
-                <<  result
-                <<  '\n'
-                ;
-            
-            result = system
-                (packagesString("aur" , nc).c_str())
-            ;
-            
-            if (result != 0)
-                std::cout
-                <<  "Error: Aur Helper exited with the following return code: "
-                <<  result
-                <<  '\n'
-                ;
-            
-            return;  // Exit the function after successful installation
-            
-        }
-        
-        else if
-            ( confirmInput == "n" || confirmInput == "N" )
-        {
-            
-            std::cout
-                <<  ":: Exiting without installation...\n"
-            ;
-            
-            return;  // Exit the function
-            
-        }
-        
-        else
-        {
-            falseCount++;  // Increment on invalid input
-            std::cout
-                <<  ":: WARN: Invalid input. Please enter 'Y' or 'N'. Attempts left: "
-                <<  (4 - falseCount)
-                <<  "\n>> "
-            ;
+            // Proceed to install Pacman packages with retry
+            executeWithRetry(packagesString("pacman", nc), 3);
+
+            // Proceed to install AUR packages with retry
+
+            return; // Exit the function after successful installation
+        } else if (confirmInput == "n" || confirmInput == "N") {
+            std::cout << ":: Exiting without installation...\n";
+            return; // Exit the function
+        } else {
+            falseCount++;
+            std::cout << ":: WARN: Invalid input. Please enter 'Y' or 'N'. Attempts left: " << (3 - falseCount) << "\n>> ";
         }
     }
 
-    std::cout
-        <<  "\r:: Error: 3 failed attempts for confirmation input\n"
-        <<  ":: Exiting...\n"
-    ;
-    
+    // std::cout << "\r:: Error: 3 failed attempts for confirmation input\n" << ":: Exiting...\n";
 }
 
 std::string trim(const std::string& str) {
@@ -274,7 +270,10 @@ void
     "  -h  | --help : Prints the help message\n"
     "  -i  | --install : Install the HyprLuna dots\n"
     "  -nc | --no-confirm : Install Hyprluna without multiple confirmations!\n"
-    "        => will still ask for confirmation when installing the dotfiles\n";
+    "        => will still ask for confirmation when installing the dotfiles\n"
+    " :: WARN: the `nc` flag must a combined flag. so `-inc` is valid.\n"
+    "    => Using it standalone will produce errors\n"
+    ;
     
     
     for
