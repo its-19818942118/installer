@@ -1,0 +1,369 @@
+#include <cstddef>
+#include <cstdlib>
+#include <fstream>
+#include <iostream>
+#include <string>
+#include <vector>
+
+static int s_allocount = 0;
+#ifdef DEBUG
+#undef DEBUG
+    
+    void* operator new(size_t size) {
+        s_allocount++;
+        void* ptr = std::malloc(size);
+        if (!ptr) {
+            throw std::bad_alloc(); // Handle allocation failure
+        }
+        std::cout << "Allocated " << size << " bytes. Total allocations: " << s_allocount << std::endl;
+        return ptr;
+    }
+
+    // Overriding global delete operator
+    void operator delete(void* ptr) noexcept {
+        std::free(ptr);
+        std::cout << "Deallocated memory." << std::endl;
+    }
+    
+#endif /* DEBUG */
+
+namespace
+    pkgString
+{
+    
+    const std::string
+        cmdAur = "paru -Syu --needed",
+        cmdPac = "sudo pacman -Syu --needed",
+        pkgAur = " metar wlogout gradience apple-fonts matugen-bin ttf-rubik-vf python-yapsy ttf-readex-pro ttf-gabarito-git adw-gtk-theme-git ttf-noto-sans-cjk-vf ttf-material-symbols-variable-git ",
+        pkgPac = " bc jq gjs npm git pam yad axel curl wget swww gvfs gtk3 fish foot grim cmake meson rsync glib2 glibc qt5ct slurp upower gtkmm3 swappy ddcutil ripgrep ydotool cairomm ghostty hyprland cliphist libpulse libsoup3 tinyxml2 hyprlock hypridle starship coreutils playerctl gammastep libnotify blueberry tesseract dart-sass hyprutils typescript fontconfig hyprpicker glib2-devel wf-recorder wireplumber qt5-wayland pavucontrol rofi-wayland polkit-gnome python-build wl-clipboard python-wheel python-psutil brightnessctl xdg-user-dirs gnome-keyring python-pillow networkmanager gtksourceview3 python-libsass gtk-layer-shell gtksourceviewmm libdbusmenu-gtk3 python-pywayland noto-fonts-emoji xdg-user-dirs-gtk webp-pixbuf-loader xdg-desktop-portal tesseract-data-eng gnome-bluetooth-3.0 gnome-control-center gobject-introspection power-profiles-daemon python-setuptools-scm xdg-desktop-portal-gtk xdg-desktop-portal-hyprland ",
+        paru = "sudo pacman -S --needed git base-devel && mkdir -p /tmp/paru && cd /tmp/paru && git clone https://aur.archlinux.org/paru.git && cd paru && makepkg -si && rm -rf /tmp/paru",
+        yay = "sudo pacman -S --needed git base-devel && mkdir -p /tmp/yay && cd /tmp/yay && git clone https://aur.archlinux.org/yay.git && cd yay && makepkg -si && rm -rf /tmp/yay",
+        agsV1 = "mkdir -p /tmp/agsv1 && cd /tmp/agsv1 && git clone https://github.com/Lunaris-Project/agsv1 && ",
+        hyprLunaRepo = "https://github.com/Lunaris-Project/HyprLuna.git",
+        hyprlunaDir = std::string(getenv("$HOME")) + "/.config/HyprLuna",
+        backDir = std::string(getenv("$HOME")) + "/hyprLuna-user.bak",
+        cmdPacPkg = cmdPac + pkgPac,
+        cmdAurPKg = cmdAur + pkgAur
+    ;
+    
+    
+} /* namespace pkgString */
+
+std::string
+    packagesString
+    ( std::string packagetype , bool nc )
+{
+    
+    
+    if
+        ( packagetype == "pacman" && nc == false )
+    {
+        return pkgString::cmdPacPkg;
+    }
+    
+    if
+        ( packagetype == "pacman" && nc == true )
+    {
+        return pkgString::cmdPacPkg + "--no-confirm";
+    }
+    
+    else if
+        ( packagetype == "aur" && nc == false )
+    {
+        return pkgString::cmdAurPKg;
+    }
+    
+    else if
+        ( packagetype == "aur" && nc == true )
+    {
+        return pkgString::cmdAurPKg + "--no-confirm";
+    }
+    
+    return "null";
+    
+}
+
+void
+    installDots
+    ( )
+{
+    
+}
+
+void
+    installHyprLuna
+    ( bool nc)
+{
+    
+    std::cout
+        <<  ":: INFO: Install the following Dependencies Required for HyprLuna? [Yy/Nn]\n"
+        <<  "  >> "
+    ;
+    std::string confirmInput;
+    int falseCount = 0;
+    
+    while (falseCount <= 3)  // Change to < 3
+    {
+        std::getline (std::cin, confirmInput);  // Move input inside the loop
+
+        if
+            ( confirmInput == "y" || confirmInput == "Y")
+        {
+            
+            std::cout
+                <<  ":: Please choose an Aur Helper: [0/1/2]\n"
+                <<  ":: 1. Yay\n"
+                <<  ":: 2. Paru\n"
+                <<  ":: 0. Default\n"
+                <<  "  >> "
+            ;
+            
+            int aurHelperInput;  // Use a different name
+            std::cin >> aurHelperInput;
+            
+            if (aurHelperInput == 0)
+            {
+                int result;
+                ;
+                result = system(pkgString::yay.c_str());
+                if (result != 0)
+                    std::cerr
+                    <<  "Error: Aur Helper Installer exited with the following return code: "
+                    <<  result
+                    <<  '\n'
+                ;
+            }
+            
+            if (aurHelperInput == 1)
+            {
+                int result;
+                result = system(pkgString::yay.c_str());
+                if (result != 0)
+                    std::cerr
+                    <<  "Error: Aur Helper Installer exited with the following return code: "
+                    <<  result
+                    <<  '\n'
+                ;
+            }
+            
+            if (aurHelperInput == 2)
+            {
+                int result;
+                result = system(pkgString::paru.c_str());
+                if (result != 0)
+                    std::cerr
+                    <<  "Error: Aur Helper Installer exited with the following return code: "
+                    <<  result
+                    <<  '\n'
+                ;
+            }
+            
+            int result;
+            result = system
+                (packagesString("pacman" , nc).c_str())
+            ;
+            
+            if (result != 0)
+                std::cerr
+                <<  "Error: Pacman exited with the following return code: "
+                <<  result
+                <<  '\n'
+                ;
+            
+            result = system
+                (packagesString("aur" , nc).c_str())
+            ;
+            
+            if (result != 0)
+                std::cout
+                <<  "Error: Aur Helper exited with the following return code: "
+                <<  result
+                <<  '\n'
+                ;
+            
+            return;  // Exit the function after successful installation
+            
+        }
+        
+        else if
+            ( confirmInput == "n" || confirmInput == "N" )
+        {
+            
+            std::cout
+                <<  ":: Exiting without installation...\n"
+            ;
+            
+            return;  // Exit the function
+            
+        }
+        
+        else
+        {
+            falseCount++;  // Increment on invalid input
+            std::cout
+                <<  ":: WARN: Invalid input. Please enter 'Y' or 'N'. Attempts left: "
+                <<  (4 - falseCount)
+                <<  "\n>> "
+            ;
+        }
+    }
+
+    std::cout
+        <<  "\r:: Error: 3 failed attempts for confirmation input\n"
+        <<  ":: Exiting...\n"
+    ;
+    
+}
+
+std::string trim(const std::string& str) {
+    size_t first = str.find_first_not_of(' ');
+    if (first == std::string::npos) return ""; // No content
+    size_t last = str.find_last_not_of(' ');
+    return str.substr(first, (last - first + 1));
+}
+
+std::string getOSType() {
+    std::ifstream osType("/etc/os-release");
+    if (!osType) {
+        return ":: ERROR: Unable to open /etc/os-release\n";
+    }
+    
+    std::string line;
+    while (std::getline(osType, line)) {
+        if (line.find("ID=") == 0) {
+            std::string osID = line.substr(3); // Get everything after "ID="
+            osID.erase(std::remove(osID.begin(), osID.end(), '\"'), osID.end()); // Remove quotes if present
+            osID = trim(osID); // Trim whitespace
+
+            // Debugging output
+            // std::cout << "Detected OS ID: '" << osID << "' (length: " << osID.length() << ")" << std::endl;
+
+            if (osID != "arch") {
+                std::cout
+                << ":: INFO: THIS INSTALLER IS STRICTLY FOR ARCH BASED DISTROS\n ANYOTHER USES MAY BREAK YOUR SYSTEM: " + line;
+                return ":: INFO: THIS INSTALLER IS STRICTLY FOR ARCH BASED DISTROS\n ANYOTHER USES MAY BREAK YOUR SYSTEM: " + line;
+            }
+            else {
+                // return ":: SUCCESS: This installer is meant for Arch-based systems. Detected: " + osID + "\n";
+            }
+        }
+    }
+    osType.close();
+    return ":: ERROR: ID not found in /etc/os-release\n";
+}
+
+void
+    execShell
+    ( )
+{
+    
+    
+    
+}
+
+void
+    parseCmd
+    ( int argc , char* argv [ ] )
+{
+    
+    std::string cmd , helpMsg , errCmd;
+    std::vector<std::string> invalidArgs;
+    helpMsg =
+    ":: INFO: Installer <args>\n"
+    ":: INFO: flags <args> are:\n"
+    "  -h  | --help : Prints the help message\n"
+    "  -i  | --install : Install the HyprLuna dots\n"
+    "  -nc | --no-confirm : Install Hyprluna without multiple confirmations!\n"
+    "        => will still ask for confirmation when installing the dotfiles\n";
+    
+    
+    for
+        ( size_t i = 1; i < argc; ++i )
+    {
+        
+        cmd = argv [ i ];
+        
+        if 
+            ( cmd == "-i" || cmd == "--install" )
+        {
+            std::cout
+                <<  ":: INFO: Installing Hyprluna ...\n"
+            ;
+            
+            installHyprLuna (false);
+            
+        }
+        
+        else if
+            ( cmd == "-inc" || cmd == "--install --no-confirm" )
+        {
+            std::cout
+                <<  ":: INFO: Installing Hyprluna...\n"
+            ;
+            
+            installHyprLuna(true);
+            
+        }
+        
+        else if
+            ( cmd == "-h" || cmd == "--help" )
+        {
+            std::cout
+                << helpMsg
+            ;
+        }
+        
+        else
+        {
+            errCmd = invalidArgs.emplace_back (cmd);
+        }
+        
+    }
+    
+    if (!invalidArgs.empty())
+    {
+        std::cerr << ":: ERROR: Invalid argument/s: ";
+        for (const auto& arg : invalidArgs) {
+            std::cerr << "`" << arg << "` ";
+        }
+        std::cerr << "\n" << helpMsg;
+    }
+    
+}
+
+int
+    main
+    ( int argc , char* argv [ ] )
+{
+    
+    if
+        ( argc < 2 )
+    {
+        
+        std::cerr
+            <<  ":: Error:\n"
+            <<  "  No Arguments passed!\n"
+            <<  "  Please provide atleast 1 argument\n"
+            <<  "  Use -h | --help to print out a help message"
+        ;
+        
+    }
+    
+    else
+    {
+        getOSType();
+        parseCmd ( argc , argv );
+        
+    }
+    
+    #ifdef DEBUG
+        
+        std::cout
+            <<  "Number of shitty allocations: "
+            <<  s_allocount
+            <<  '\n'
+        ;
+        
+    #endif /* DEBUG */
+    
+}
