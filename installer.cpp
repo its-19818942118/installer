@@ -33,7 +33,7 @@ namespace
 {
     
     const std::string
-        cmdAur = "paru -Syu --needed",
+        cmdAur = "paru -Sy --needed",
         cmdPac = "sudo pacman -Syu --needed",
         pkgAur = " metar wlogout gradience apple-fonts matugen-bin ttf-rubik-vf python-yapsy ttf-readex-pro ttf-gabarito-git adw-gtk-theme-git ttf-noto-sans-cjk-vf ttf-material-symbols-variable-git ",
         pkgPac = " bc jq gjs npm git pam yad axel curl wget swww gvfs gtk3 fish foot grim cmake meson rsync glib2 glibc qt5ct slurp upower gtkmm3 swappy ddcutil ripgrep ydotool cairomm ghostty hyprland cliphist libpulse libsoup3 tinyxml2 hyprlock hypridle starship coreutils playerctl gammastep libnotify blueberry tesseract dart-sass hyprutils typescript fontconfig hyprpicker glib2-devel wf-recorder wireplumber qt5-wayland pavucontrol rofi-wayland polkit-gnome python-build wl-clipboard python-wheel python-psutil brightnessctl xdg-user-dirs gnome-keyring python-pillow networkmanager gtksourceview3 python-libsass gtk-layer-shell gtksourceviewmm libdbusmenu-gtk3 python-pywayland noto-fonts-emoji xdg-user-dirs-gtk webp-pixbuf-loader xdg-desktop-portal tesseract-data-eng gnome-bluetooth-3.0 gnome-control-center gobject-introspection power-profiles-daemon python-setuptools-scm xdg-desktop-portal-gtk xdg-desktop-portal-hyprland ",
@@ -114,15 +114,6 @@ void
     
 }
 
-#include <iostream>
-#include <limits> // For std::numeric_limits
-
-#include <iostream>
-#include <limits> // For std::numeric_limits
-
-#include <iostream>
-#include <limits> // For std::numeric_limits
-
 void installHyprLuna(bool nc) {
     std::cout
         << ":: INFO: Install the following Dependencies Required for HyprLuna? [Yy/Nn]\n" << "  >> ";
@@ -141,7 +132,7 @@ void installHyprLuna(bool nc) {
                           << ":: 0. Default (Yay)\n"
                           << ":: 1. Yay\n" 
                           << ":: 2. Paru\n" 
-                          << "  >> ";
+                          << "  ==>> ";
                 
                 // Attempt to read aurHelperInput
                 std::cin >> aurHelperInput;
@@ -204,7 +195,7 @@ void installHyprLuna(bool nc) {
             return; // Exit the function
         } else {
             falseCount++;
-            std::cout << ":: WARN: Invalid input. Please enter 'Y' or 'N'. Attempts left: " << (3 - falseCount) << "\n>> ";
+            std::cout << ":: WARN: Invalid input. Please enter 'Y' or 'N'. Attempts left: " << (3 - falseCount) << "\n==>> ";
         }
     }
 
